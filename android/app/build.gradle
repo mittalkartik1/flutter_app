@@ -61,6 +61,62 @@ android {
             signingConfig signingConfigs.debug
         }
     }
+
+    afterEvaluate {
+        if(System.getenv("IS_CI_BUILD") == "true"){
+            def bundleTask = project.tasks.findByName('bundleRelease')
+
+            // Create a custom task to run after bundleRelease
+            task copyBuildTask(dependsOn: bundleTask) {
+                // Configure your custom task here
+                doLast {
+                    // Code to run after bundleRelease for appcenter
+                    println "Copying builds..."
+
+                    def apkPath = file('../../build/app/outputs/flutter-apk/app-release.apk')
+                    if(apkPath.exists()) {
+                        def apkDir = file('build/outputs/apk/')
+                        apkDir.mkdirs()
+                        copy {
+                            from apkPath.parent
+                            into apkDir
+                            include apkPath.name
+                        }
+                        println "Apk file moved to: ${apkDir}/${apkPath.name}"
+                    }
+
+                    def bundlePath = file('../../build/app/outputs/bundle/release/app-release.aab')
+                    if(bundlePath.exists()) {
+                        def bundleDir = file('build/outputs/bundle/')
+                        bundleDir.mkdirs()
+                        copy {
+                            from bundlePath.parent
+                            into bundlePath
+                            include bundlePath.name
+                        }
+                        println "AAB file moved to: ${bundleDir}/${bundlePath.name}"
+                    }
+
+                    def mappingPath = file('../../build/app/outputs/mapping/release/mapping.txt')
+                    if(mappingPath.exists()) {
+                        def mappingDir = file('build/outputs/mapping/')
+                        mappingDir.mkdirs()
+                        copy {
+                            from mappingPath.parent
+                            into mappingDir
+                            include mappingPath.name
+                        }
+                        println "Mapping file moved to: ${mappingDir}/${mappingPath.name}"
+                    }
+                }
+            }
+
+            if(bundleTask != null) {
+                bundleTask.finalizedBy(copyBuildTask)
+            }
+        }
+    }
+}
 }
 
 flutter {
